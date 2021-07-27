@@ -70,9 +70,8 @@ formatted as a single column. Ensure no duplicate data, and order by
 the member name. */
 
 SELECT
-  F.name
-  ,CONCAT(M.firstname,' ',M.surname) as member_name
-  ,SUM(F.membercost) AS membercost_total
+  F.name,CONCAT(M.firstname,' ',M.surname) as member_name, 
+  SUM(F.membercost) AS membercost_total
 FROM 
   Members M
   INNER JOIN Bookings B ON M.memid = B.memid
@@ -80,8 +79,7 @@ FROM
 WHERE 
   F.name like '%Tennis Court%'
 GROUP BY
-  F.name
-  ,member_name
+  F.name,member_name
 ORDER BY
   member_name
 
@@ -126,18 +124,23 @@ AND Bookings.slots * Facilities.membercost >30))
 ORDER BY cost DESC
 
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
-SELECT F.name, 
-CASE WHEN M.memid = 0 
-THEN 'Guest' 
-ELSE CONCAT( M.firstname, ' ', M.surname ) 
-END AS member_name,
-SUM(CASE WHEN M.memid = 0 THEN F.guestcost ELSE F.membercost * B.slots END) AS cost
-FROM Bookings B
-  INNER JOIN Facilities F ON B.facid = F.facid
-  LEFT JOIN Members M ON B.memid = M.memid
-WHERE DATE(starttime) = '2012-09-14'
-GROUP BY F.name,member_name
-HAVING cost > 30
+WITH cost AS(
+    SELECT
+    CASE WHEN Members.memid = 0 
+    THEN Bookings.slots * Facilities.guestcost 
+    ELSE Bookings.slots * Facilities.membercost
+	END AS cost
+    FROM Members)
+SELECT surname AS Member, name AS Facility, cost
+FROM Members
+JOIN Bookings ON Members.memid = Bookings.memid
+JOIN Facilities ON Bookings.facid = Facilities.facid
+WHERE Bookings.starttime >= '2012-09-14'
+AND Bookings.starttime < '2012-09-15'
+AND ((Members.memid =0
+AND Bookings.slots * Facilities.guestcost >30)
+OR (Members.memid !=0
+AND Bookings.slots * Facilities.membercost >30))
 ORDER BY cost DESC
 
 /* PART 2: SQLite
